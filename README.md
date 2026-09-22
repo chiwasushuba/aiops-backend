@@ -1,5 +1,8 @@
 # AIOps backend
 
+New to Spring Boot? Work through [the practice guide](springboot_tutorial.md)
+using this project's users API.
+
 ## Run the backend and PostgreSQL with Docker
 
 Prerequisite: Docker Desktop must be running. This project uses the Docker
@@ -52,8 +55,33 @@ Compose plugin (`docker compose`), not the older `docker-compose` binary.
 | `DB_PASSWORD` | empty | `POSTGRES_PASSWORD` from `.env` |
 | `JPA_DDL_AUTO` | `validate` | `validate` |
 
-`JPA_DDL_AUTO=validate` deliberately prevents Hibernate from changing a
-production schema. Add versioned database migrations before introducing tables.
+`JPA_DDL_AUTO=validate` prevents Hibernate from changing the schema. Flyway runs
+versioned migrations from `src/main/resources/db/migration` when the application
+starts, then Hibernate validates the resulting schema.
+
+## Users API
+
+The users feature lives in `com.aiops.aiops_backend.users`. The controller maps
+HTTP requests, the service owns user operations, the Spring Data repository
+accesses PostgreSQL, and the `User` entity maps the `users` table. Spring MVC
+replaces the separate Express route file with annotations on the controller.
+
+| Method | Path | Result |
+| --- | --- | --- |
+| `POST` | `/api/users` | Create a user (`201`, with `Location`) |
+| `GET` | `/api/users/{id}` | Get one user (`404` if missing) |
+| `GET` | `/api/users?page=0&size=20` | List users by ID, up to 100 per page |
+| `PUT` | `/api/users/{id}` | Replace name and email (`404` if missing) |
+| `DELETE` | `/api/users/{id}` | Delete a user (`204`, or `404` if missing) |
+
+Create and update take `{ "name": "Alice", "email": "alice@example.com" }`.
+Responses contain `id`, `name`, and `email`. The list response contains
+`content`, `page`, `size`, and `totalElements`. Names are trimmed, emails are
+trimmed and stored lowercase, and duplicate emails return `409`. Invalid input
+returns `400`.
+
+This feature contains profile data only. Authentication and authorization still
+need to be added before exposing these endpoints to untrusted clients.
 
 For a clean backend-image rebuild after changing Java dependencies or the
 Dockerfile:
