@@ -1,0 +1,20 @@
+# Project skills live under this directory; paths are relative to this file.
+[[skills.config]]
+path = "skills/aiops-java-build"
+enabled = true
+
+[[skills.config]]
+path = "skills/aiops-backend-api"
+enabled = true
+
+[[skills.config]]
+path = "skills/aiops-database-migrations"
+enabled = true
+
+[[skills.config]]
+path = "skills/aiops-springboot-runtime"
+enabled = true
+
+[[skills.config]]
+path = "skills/aiops-performance"
+enabled = true
