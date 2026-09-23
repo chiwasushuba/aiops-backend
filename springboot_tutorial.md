@@ -4,7 +4,9 @@ This guide uses the existing users API. Work through it in order, then try the
 exercises without copying the current implementation. The project uses Java 21,
 Spring Boot 4.1.1, Maven, Spring MVC, Spring Data JPA, Flyway, and PostgreSQL.
 
-## 1. Translate the Express/NestJS concepts
+## 1. How the users API is set up
+
+### Translate the Express/NestJS concepts
 
 | Express or NestJS | In this Spring Boot project | Where to look |
 | --- | --- | --- |
@@ -17,9 +19,124 @@ Spring Boot 4.1.1, Maven, Spring MVC, Spring Data JPA, Flyway, and PostgreSQL.
 | Database migration | Versioned Flyway SQL file | `db/migration/V1__create_users.sql` |
 | Exception filter | `@RestControllerAdvice` | `users/UserErrorHandler.java` |
 
-Java source files are under `src/main/java/com/aiops/aiops_backend`. The
-`AiopsBackendApplication` class starts Spring Boot. Its package is above `users`,
-so Spring finds the controller, service, repository, and entity automatically.
+NestJS normally groups these files in a `UsersModule`. This project does not
+need a `UsersModule.java`. Instead, it groups the files in a Java package named
+`com.aiops.aiops_backend.users`, and Spring Boot discovers the annotated classes
+in that package automatically.
+
+### Create the folders and files
+
+From the repository root, the users feature has this layout:
+
+```text
+src/
+|-- main/
+|   |-- java/com/aiops/aiops_backend/
+|   |   |-- AiopsBackendApplication.java
+|   |   `-- users/
+|   |       |-- User.java
+|   |       |-- UserController.java
+|   |       |-- UserErrorHandler.java
+|   |       |-- UserPage.java
+|   |       |-- UserRepository.java
+|   |       |-- UserRequest.java
+|   |       |-- UserResponse.java
+|   |       `-- UserService.java
+|   `-- resources/
+|       |-- application.properties
+|       `-- db/migration/
+|           `-- V1__create_users.sql
+`-- test/
+    |-- java/com/aiops/aiops_backend/users/
+    |   `-- UserControllerTests.java
+    `-- resources/
+        `-- application-test.properties
+```
+
+In IntelliJ IDEA or another Java IDE, create a package named
+`com.aiops.aiops_backend.users` under `src/main/java`, then create the Java
+files inside that package. Each file begins with the matching package line:
+
+```java
+package com.aiops.aiops_backend.users;
+```
+
+Create database migration files under `src/main/resources/db/migration`, not
+inside the Java package. Create tests under the matching package path in
+`src/test/java`. Files in the same Java package can refer to each other without
+import statements.
+
+### Build the feature in this order
+
+When creating a similar API from scratch, this order makes the dependencies
+easier to understand:
+
+1. Create `V1__create_users.sql` to define the `users` database table.
+2. Create `User.java` and map it to that table with `@Entity` and `@Table`.
+3. Create `UserRepository.java` by extending `JpaRepository<User, Long>`.
+   Spring Data generates the repository implementation; you do not create a
+   `UserRepositoryImpl` for these standard operations.
+4. Create `UserRequest.java` for incoming JSON, `UserResponse.java` for outgoing
+   JSON, and `UserPage.java` for paginated list responses.
+5. Create `UserService.java` for user operations and database transactions.
+6. Create `UserController.java` to define the `/api/users` HTTP routes.
+7. Create `UserErrorHandler.java` to translate user exceptions into HTTP status
+   codes such as `404 Not Found` and `409 Conflict`.
+8. Create `UserControllerTests.java` under `src/test/java` to verify the whole
+   request flow.
+
+### Connect the files
+
+The dependency flow is:
+
+```text
+HTTP request
+    -> UserController
+        -> UserService
+            -> UserRepository
+                -> JPA/Hibernate
+                    -> users table
+
+JSON body -> UserRequest
+User entity -> UserResponse -> JSON response
+Exceptions -> UserErrorHandler -> HTTP error response
+```
+
+You connect the controller to the service by declaring a constructor parameter:
+
+```java
+private final UserService service;
+
+public UserController(UserService service) {
+    this.service = service;
+}
+```
+
+You connect the service to the repository in the same way:
+
+```java
+private final UserRepository repository;
+
+public UserService(UserRepository repository) {
+    this.repository = repository;
+}
+```
+
+You do not call either constructor yourself. At startup, Spring sees
+`@RestController`, `@Service`, and the `JpaRepository` interface, creates the
+objects, and supplies each constructor dependency. This is dependency injection,
+similar to listing providers and injecting them in NestJS.
+
+`AiopsBackendApplication.java` is in the parent package
+`com.aiops.aiops_backend`. Its `@SpringBootApplication` annotation scans that
+package and all child packages, including `users`. If you put a feature outside
+that package tree, Spring will not discover it unless you configure additional
+component scanning. Keeping feature packages below the application package is
+the simplest setup.
+
+The database is connected separately through `application.properties`.
+Spring Boot uses those datasource settings to connect JPA to PostgreSQL, while
+Flyway finds and runs the migration files in `db/migration` at startup.
 
 ### Follow one request
 

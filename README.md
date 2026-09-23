@@ -83,6 +83,23 @@ returns `400`.
 This feature contains profile data only. Authentication and authorization still
 need to be added before exposing these endpoints to untrusted clients.
 
+## Messages API
+
+Messages contain a `role` (`USER` or `ASSISTANT`) and `content`. The API supports
+creation, retrieval, pagination, replacement, partial updates, and deletion.
+
+| Method | Path | Result |
+| --- | --- | --- |
+| `POST` | `/api/messages` | Create a message (`201`, with `Location`) |
+| `GET` | `/api/messages/{id}` | Get one message (`404` if missing) |
+| `GET` | `/api/messages?page=0&size=20` | List messages by ID, up to 100 per page |
+| `PUT` | `/api/messages/{id}` | Replace the role and content |
+| `PATCH` | `/api/messages/{id}` | Update one or both fields |
+| `DELETE` | `/api/messages/{id}` | Delete a message (`204`, or `404` if missing) |
+
+Create and replace requests take `{ "role": "USER", "content": "Hello" }`.
+A patch may contain only `role` or only `content`. Invalid input returns `400`.
+
 For a clean backend-image rebuild after changing Java dependencies or the
 Dockerfile:
 
